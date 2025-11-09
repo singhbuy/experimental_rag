@@ -44,6 +44,12 @@ export async function POST(request: NextRequest) {
         sources: [],
         question,
         executionTime: embedTime + searchTime,
+        timing: {
+          embedding: embedTime,
+          search: searchTime,
+          llm: 0,
+          total: embedTime + searchTime,
+        },
       });
     }
 
