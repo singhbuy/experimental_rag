@@ -1,0 +1,70 @@
+// This is your Prisma schema file
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String?
+  createdAt DateTime @default(now())
+  queries   Query[]
+  documents Document[]
+}
+
+model Document {
+  id          String   @id @default(cuid())
+  userId      String?
+  user        User?    @relation(fields: [userId], references: [id])
+  title       String
+  content     String   @db.Text
+  source      String   // "local", "gdrive", "confluence", etc
+  sourceId    String?  // Original ID in source system
+  url         String?
+  contentType String?  // "pdf", "md", "docx", etc
+  metadata    Json?    // Flexible metadata
+  status      String   @default("pending") // "pending", "processing", "indexed", "failed"
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  chunks      Chunk[]
+
+  @@unique([source, sourceId])
+  @@index([userId])
+  @@index([status])
+}
+
+model Chunk {
+  id          String   @id @default(cuid())
+  documentId  String
+  document    Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  content     String   @db.Text
+  chunkIndex  Int
+  vectorId    String   @unique // Reference to Chroma vector ID
+  metadata    Json?
+  createdAt   DateTime @default(now())
+
+  @@index([documentId])
+  @@index([vectorId])
+}
+
+model Query {
+  id            String   @id @default(cuid())
+  userId        String
+  user          User     @relation(fields: [userId], references: [id])
+  queryText     String   @db.Text
+  filters       Json?
+  executionTime Float?   // in milliseconds
+  resultsCount  Int?
+  feedbackScore Int?     // User rating 1-5
+  createdAt     DateTime @default(now())
+
+  @@index([userId])
+  @@index([createdAt])
+}
